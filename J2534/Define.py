@@ -28,6 +28,9 @@ class ProtocolID(object):
     SCI_A_TRANS                     = 8 
     SCI_B_ENGINE                    = 9 
     SCI_B_TRANS                     = 10
+    SW_ISO15765_PS                  = 0x00008007
+    SW_CAN_PS                       = 0x00008008
+
 
 
 class Flags(addBase):
@@ -40,6 +43,8 @@ class Flags(addBase):
 class BaudRate(object):
     B500K                           = 500000
     B250K                           = 250000
+    B83K                            = 83333
+    B33K                            = 33333
 class FilterType(object):
     PASS_FILTER                     = 0x00000001
     BLOCK_FILTER                    = 0x00000002
@@ -84,7 +89,7 @@ class TxFlags(addBase):
     ISO15765_ADDR_TYPE                  = 0x00000080  #defined above
     CAN_29BIT_ID                        = 0x00000100  #defined above
     WAIT_P3_MIN_ONLY                    = 0x00000200
-    SWCAN_HV_TX                         = 0x00000400
+    SW_CAN_HV_TX                        = 0x00000400
     SCI_MODE                            = 0x00400000 # Not supported
     SCI_TX_VOLTAGE                      = 0x00800000 # Not supported
     ISO15765_FRAME_PAD                  = 0x00000040
@@ -134,6 +139,10 @@ class Parameter(object):
     STMIN_TX                          = 0x23
     T3_MAX                            = 0x24
     ISO15765_WFT_MAX                  = 0x25
+    J1962_PINS                        = 0x00008001
+    SW_CAN_HS_DATA_RATE               = 0x00008010
+    SW_CAN_SPEEDCHANGE_ENABLE         = 0x00008011
+    SW_CAN_RES_SWITCH                 = 0x00008012
     USED = [
         DATA_RATE,LOOPBACK,NODE_ADDRESS,NETWORK_LINE,P1_MAX,P3_MIN,P4_MIN,\
         W0,W1,W2,W3,W4,W5,TIDLE,TINIL,TWUP,PARITY,BIT_SAMPLE_POINT,SYNC_JUMP_WIDTH,\

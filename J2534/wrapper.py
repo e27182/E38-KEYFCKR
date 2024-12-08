@@ -23,6 +23,42 @@ class baseMsg(PassThru_Msg):
         d = Func.IntToID(ID) + data
         self._setData(d)
 
+    def __getitem__(self, key):
+        """Allow accessing Data via [] notation, supporting slicing."""
+        if isinstance(key, slice):
+            # Return a list containing the sliced data
+            return [self.Data[i] for i in range(*key.indices(self.DataSize))]
+        elif isinstance(key, int):
+            # Handle single index access
+            if 0 <= key < self.DataSize:
+                return self.Data[key]
+            else:
+                raise IndexError("Index out of range")
+        else:
+            raise TypeError("Invalid argument type")
+
+    def __setitem__(self, key, value):
+        """Allow modifying Data via [] notation, supporting slicing."""
+        if isinstance(key, slice):
+            indices = range(*key.indices(self.DataSize))
+            if len(indices) != len(value):
+                raise ValueError("Length of slice does not match length of value")
+            for i, val in zip(indices, value):
+                self.Data[i] = val
+        elif isinstance(key, int):
+            # Handle single index modification
+            if 0 <= key < self.DataSize:
+                self.Data[key] = value
+            else:
+                raise IndexError("Index out of range")
+        else:
+            raise TypeError("Invalid argument type")
+
+    def __len__(self):
+        """Allow len() to return the size of Data."""
+        return self.DataSize
+    
+
 class pt15765Msg(baseMsg):
     def __init__(self, TxFlag):
         self.ProtocolID = ProtocolID.ISO15765
@@ -54,10 +90,10 @@ class ptRxMsg(baseMsg):
 class GetParameter(SCONFIG_LIST, Parameter):
     def __init__(self):
         self.NumOfParams = len(Parameter.USED)
-        self.paras = SCONFIG * self.NumOfParams
+        self.params = SCONFIG * self.NumOfParams
         for i in range(self.NumOfParams):
-            self.paras()[i].set(Parameter.USED[i])
-        self.ConfigPtr = self.paras()
+            self.params()[i].set(Parameter.USED[i])
+        self.ConfigPtr = self.params()
 class J2534Lib():
 
     def __init__(self):
@@ -148,7 +184,7 @@ def ptReadMsgs(ChannelID, Msgs, NumMsgs, Timeout):
     ret = j2534lib.PassThruReadMsgs(ChannelID, ct.byref(Msgs), ct.byref(ct.c_ulong(NumMsgs)), Timeout)
     _err('ptReadMsgs',ret)
     return ret
-def ptWtiteMsgs(ChannelID, Msgs, NumMsgs, Timeout):
+def ptWriteMsgs(ChannelID, Msgs, NumMsgs, Timeout):
     """[summary]
     
     Arguments:
@@ -175,7 +211,10 @@ def ptStartMsgFilter(ChannelID, FilterType, MaskMsg, PatternMsg, FlowControlMsg)
     """ start the msg filter
     """
     pFilterID = ct.c_ulong()
-    ret = j2534lib.PassThruStartMsgFilter(ChannelID, FilterType, ct.byref(MaskMsg), ct.byref(PatternMsg), ct.byref(FlowControlMsg), ct.byref(pFilterID))
+    pMaskMsg = ct.byref(MaskMsg) if MaskMsg is not None else None
+    pPatternMsg = ct.byref(PatternMsg) if PatternMsg is not None else None
+    pFlowControlMsg = ct.byref(FlowControlMsg) if FlowControlMsg is not None else None
+    ret = j2534lib.PassThruStartMsgFilter(ChannelID, FilterType, pMaskMsg, pPatternMsg, pFlowControlMsg, ct.byref(pFilterID))
     _err('ptStartMsgFilter',ret)
     return ret, pFilterID.value
 def ptStopMsgFilter(ChannelID, FilterID):
@@ -221,21 +260,27 @@ def ptIoctl(ChannelID, IoctlID, Input, Output):
 def GetConfig(ChannelID, ioctlid):
     conf = SCONFIG_LIST()
     conf.NumOfParams = 1
-    conf.paras = SCONFIG * 1
-    conf.paras[0].setpara(ioctlid)
-    conf.ConfigPtr = conf.paras()
+
+    params = (SCONFIG * conf.NumOfParams)()
+    params[0].setpara(ioctlid)
+    
+    conf.ConfigPtr = ct.cast(params, ct.POINTER(SCONFIG))
     ret = ptIoctl(ChannelID, IoctlID.GET_CONFIG, ct.byref(conf), ct.c_void_p(None))
     return ret, conf.ConfigPtr[0].value
 
-def SetConfig(ChannelID, ioctlid, value):
+def SetConfig(ChannelID, ioctlid_value_pairs):
     conf = SCONFIG_LIST()
-    conf.NumOfParams = 1
-    conf.paras = SCONFIG * 1
-    conf.paras[0].setpara(ioctlid)
-    conf.paras[0].setvalue(value)
-    conf.ConfigPtr = conf.paras()
+    conf.NumOfParams = len(ioctlid_value_pairs)
+
+    params = (SCONFIG * conf.NumOfParams)()
+    for i, (param, value) in enumerate(ioctlid_value_pairs):
+        params[i].setpara(param)
+        params[i].setvalue(value)
+
+    conf.ConfigPtr = ct.cast(params, ct.POINTER(SCONFIG))
     ret = ptIoctl(ChannelID, IoctlID.SET_CONFIG, ct.byref(conf), ct.c_void_p(None))
     return ret
+
 def ReadVbat(ChannelID):
     _voltage = ct.c_ulong()
     ret = ptIoctl(ChannelID, IoctlID.READ_VBATT, ct.c_void_p(None), ct.byref(_voltage))

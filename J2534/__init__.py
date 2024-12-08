@@ -15,10 +15,10 @@ from .wrapper import ptData, ptTxMsg, ptRxMsg, ptMskMsg, ptPatternMsg
 from .wrapper import ptFlowControlMsgCAN, ptMskMsgCAN, ptPatternMsgCAN
 from .wrapper import ptOpen, ptClose
 from .wrapper import ptConnect, ptDisconnect
-from .wrapper import ptReadMsgs, ptWtiteMsgs
+from .wrapper import ptReadMsgs, ptWriteMsgs
 from .wrapper import ptStartPeriodicMsg, ptStopPeriodicMsg
 from .wrapper import ptStartMsgFilter, ptStopMsgFilter
 from .wrapper import ptSetProgrammingVoltage, ptReadVersion, ptGetLastError, ptIoctl
 
-from .wrapper import ReadVbat, ClearTxBuf, ClearRxBuf
+from .wrapper import ReadVbat, ClearTxBuf, ClearRxBuf, SetConfig
 from .Error import J2534Error as Error

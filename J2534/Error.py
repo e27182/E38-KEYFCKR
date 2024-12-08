@@ -177,7 +177,9 @@ def printerr(ret):
     print ( J2534Error[ret][1] )
 
 def showErr( method, ret):
-    print ( "[%s:%s]"%(method, J2534Error[ret][1]))
+    if ret != STATUS_NOERROR:
+        print ( "[%s:%s]"%(method, J2534Error[ret][1]))
+    return
 
 if __name__ == '__main__':
     import sys
