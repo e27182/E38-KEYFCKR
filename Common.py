@@ -41,6 +41,21 @@ def printECUid(name, msg):  # convert ECU id message to int value
     return id
 
 
+def print_eta(start_time, total_iterations, current_iteration, print_on_each_iteration):
+    if (current_iteration + 1) % print_on_each_iteration == 0:
+        elapsed_time = time.time() - start_time
+        completed_iterations = current_iteration + 1
+        avg_time_per_iteration = elapsed_time / completed_iterations
+        remaining_iterations = total_iterations - completed_iterations
+        estimated_time_remaining = avg_time_per_iteration * remaining_iterations
+
+        # Convert estimated time remaining to human-readable format
+        hrs, rem = divmod(estimated_time_remaining, 3600)
+        mins, secs = divmod(rem, 60)
+
+        print(dtn(), f"ETA: {completed_iterations}/{remaining_iterations}/{total_iterations}/{int(hrs)}h {int(mins)}m {int(secs)}s left.")
+
+
 def printECUidStr(name, msg):  # convert ECU id message to string value
     s = ''
     for i in range(6, msg.DataSize):
@@ -276,7 +291,7 @@ def tryKey2(protocolID, channelID, reqID, rspID, sendKey, key):
             continue
 
         if msg[-2:] == [0x67, sendKey]:  # 00 00 07 e8 02 [67 sendKey] - Key accepted
-            print(' CORRECT (!!!!!!)')
+            print('KEY ACCEPTED')
             return True
         
         if msg[-3:-1] == [0x7F, 0x27]:
@@ -402,7 +417,7 @@ ISO14229_ErrorMapping = {
     0x91: ("torqueConverterClutchLocked", ErrorResponse.Error, None),
     0x92: ("voltageTooHigh", ErrorResponse.Error, None),
     0x93: ("voltageTooLow", ErrorResponse.Error, None),
-    0xE3: ("DeviceControlLimitsExceeded", ErrorResponse.Error, lambda _, __, msg: print(f"Limits: {msg[-2:]}")),  # AE Mode
+    0xE3: ("DeviceControlLimitsExceeded", ErrorResponse.Error, lambda _, __, msg: print(f"Limits: {msg[-2:]} {[hex(x) for x in msg[-2:]]}")),  # AE Mode
 }
 
 def ISO14229_ErrorHandler(error: int, msg, delayTimer: int = 0.5, responsePendingTimer: int = 0.5) -> ErrorResponse:
