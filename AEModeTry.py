@@ -75,16 +75,27 @@ ret, filterID = ISO15765_SetFilter(protocolID, channelID, cfg.reqCANId, cfg.rspC
 
 ## -------------------------------------- Authenticate --------------------------------------- ##
 
+print(dtn(), 'Start diag')
+if not startDiag(protocolID, channelID, cfg.reqCANId, cfg.rspCANId):
+    quit(-1)
+
+print(dtn(), 'Disable comm')
+if not disableComm(protocolID, channelID, cfg.reqCANId, cfg.rspCANId):
+    quit(-1)
+
 seed = askSeed2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.requestSeed)
 tryKey2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, cfg.keys[cfg.secLevel - 1])
 
 ## -------------------------------------- Iterate CPIDs --------------------------------------- ##
 
 for cpid in range(0x00, 0x100):
-    print(dtn(), cpid, "0x{:02x}".format(cpid), end=endNoNewLine)
+    print(dtn(), cpid, "0x{:02x}".format(cpid))
 
-    if AEMode25(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cpid, [0x80, 0x30, 0x31, 0x32, 0x33]):
+    if AEMode(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cpid, [0x80, 0x30, 0x33, 0x31, 0x39]):
         print('success')
+
+print(dtn(), 'ReturnToNormal')
+ReturnToNormal(protocolID, channelID, cfg.reqCANId, cfg.rspCANId)
 
 clrb(channelID)
 J2534.ptStopMsgFilter(channelID, filterID)

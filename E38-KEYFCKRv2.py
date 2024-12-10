@@ -351,6 +351,9 @@ for ikey in range(cfg.ikeyLast, cfg.ikEnd, cfg.ikEnc):
 
 ## ---------------------------------------- Program END ---------------------------------------- ##
 
+print(dtn(), 'ReturnToNormal')
+ReturnToNormal(protocolID, channelID, cfg.reqCANId, cfg.rspCANId)
+
 cfg.phase += 1 # We have't phase 8. So, we can not find Seed Key.
 cfg.saveCfg(configFileName)
 clrb(channelID)

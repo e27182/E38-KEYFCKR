@@ -75,6 +75,14 @@ ret, filterID = ISO15765_SetFilter(protocolID, channelID, cfg.reqCANId, cfg.rspC
 
 ## -------------------------------------- Authenticate --------------------------------------- ##
 
+print(dtn(), 'Start diag')
+if not startDiag(protocolID, channelID, cfg.reqCANId, cfg.rspCANId):
+    quit(-1)
+
+print(dtn(), 'Disable comm')
+if not disableComm(protocolID, channelID, cfg.reqCANId, cfg.rspCANId):
+    quit(-1)
+
 seed = askSeed2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.requestSeed)
 tryKey2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, cfg.keys[cfg.secLevel - 1])
 
@@ -93,6 +101,9 @@ for did in range(0x00, 0x100):
             sChr += chr(d)
 
         print(sHex, sChr, sInt)
+
+print(dtn(), 'ReturnToNormal')
+ReturnToNormal(protocolID, channelID, cfg.reqCANId, cfg.rspCANId)
 
 clrb(channelID)
 J2534.ptStopMsgFilter(channelID, filterID)

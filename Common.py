@@ -215,11 +215,25 @@ def disableComm(protocolID, channelID, reqID, rspID):  # disable normal communic
 
     return False
 
+def ReturnToNormal(protocolID, channelID, reqID, rspID):  # disable normal communication
+    message = [0x20] if protocolID == ProtocolID.ISO15765 or ProtocolID.SW_ISO15765_PS else [0x01, 0x20]
+
+    sendOnly(protocolID, channelID, reqID, message)
+
+    i = 0
+    while i < 10:
+        i += 1
+        msgRx = readOnly(channelID)
+        if isResponse(msgRx, rspID) and msgRx[-1:] == [0x60]:
+            return True
+
+    return False
+
 
 def askSeed2(protocolID, channelID, reqID, rspID, requestSeed):  # Asking the Seed
     message = [0x27, requestSeed] if protocolID == ProtocolID.ISO15765 or ProtocolID.SW_ISO15765_PS else [0x02, 0x27, requestSeed]
 
-    print(dtn(), 'Ask seed ', end=endNoNewLine)
+    print(dtn(), 'Ask seed')
 
     sendOnly(protocolID, channelID, reqID, message)
 
@@ -232,7 +246,7 @@ def askSeed2(protocolID, channelID, reqID, rspID, requestSeed):  # Asking the Se
 
         if msgRx[-4:-2] == [0x67,  requestSeed]:
             aseed = int.from_bytes(msgRx[-2:])
-            print(' = ' + addZ(hex(aseed)[2:], 4))
+            print('Seed: ' + addZ(hex(aseed)[2:], 4))
             clrb(channelID)
             return aseed
 
@@ -305,34 +319,9 @@ def readDID(protocolID, channelID, reqID, rspID, did):
                 return None
     
     return None
-
-def ECUReset(protocolID, channelID, reqID, rspID):
-    resetType = 0x01
-    message = [0x11, resetType] if protocolID == ProtocolID.ISO15765 or ProtocolID.SW_ISO15765_PS else [0x02, 0x11, resetType]
-
-    sendOnly(protocolID, channelID, reqID, message)
-
-    i = 0
-    while i < 10:
-        i += 1
-        msg = readOnly(channelID)
-
-        if not isResponse(msg, rspID):
-            continue
-
-        if msg[-5:-1] == [0x7F, 0x11, 0x51, resetType]:
-            return msg[-1:][0]
-
-        if msg[-3:-1] == [0x7F, 0x11]:
-            error = msg[-1:][0]
-
-            ISO14229_ErrorHandler(error)
-            return False
-    
-    return False
         
 
-def AEMode25(protocolID, channelID, reqID, rspID, cpid, cb):
+def AEMode(protocolID, channelID, reqID, rspID, cpid, cb):
     message = [0xAE, cpid, cb[0], cb[1], cb[2], cb[3], cb[4]] if protocolID == ProtocolID.ISO15765 or ProtocolID.SW_ISO15765_PS else [0x07, 0xAE, cpid, cb[0], cb[1], cb[2], cb[3], cb[4]]
 
     sendOnly(protocolID, channelID, reqID, message)
