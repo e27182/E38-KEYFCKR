@@ -101,7 +101,7 @@ for i in range(0000, total_iterations):
     powerOff(deviceID)
 
     if isPinCorrect:
-        print(dtn(), 'PIN ACCEPTED')
+        print(dtn(), 'PIN ACCEPTED:', pin)
         break
 
     print_eta(start_time, total_iterations, i, 5) # Print ETA every X iterations

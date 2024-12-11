@@ -291,7 +291,7 @@ def tryKey2(protocolID, channelID, reqID, rspID, sendKey, key):
             continue
 
         if msg[-2:] == [0x67, sendKey]:  # 00 00 07 e8 02 [67 sendKey] - Key accepted
-            print('KEY ACCEPTED')
+            print(f'KEY ACCEPTED: {hex(keyH)} {hex(keyL)}')
             return True
         
         if msg[-3:-1] == [0x7F, 0x27]:
