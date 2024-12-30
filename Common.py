@@ -105,7 +105,7 @@ def traceMsg(msg, intoBus : bool):
         print(dtn(), '<<' if intoBus else '>>', strMsg(msg.Data, msg.DataSize))
 
 def isResponse(msg, rspID):
-    return msg.DataSize >= 4 and int.from_bytes(msg[:4]) == rspID
+    return msg.DataSize >= 4 and int.from_bytes(msg[:4], "big") == rspID
 
 def SW_PS_SetConfig(channelID, addLoopback=False):
     J2534.SetConfig(channelID, [(Parameter.J1962_PINS, 0x0100)])
@@ -260,7 +260,7 @@ def askSeed2(protocolID, channelID, reqID, rspID, requestSeed):  # Asking the Se
             continue
 
         if msgRx[-4:-2] == [0x67,  requestSeed]:
-            aseed = int.from_bytes(msgRx[-2:])
+            aseed = int.from_bytes(msgRx[-2:], "big")
             print('Seed: ' + addZ(hex(aseed)[2:], 4))
             clrb(channelID)
             return aseed
@@ -277,7 +277,7 @@ def askSeed2(protocolID, channelID, reqID, rspID, requestSeed):  # Asking the Se
 
 
 def tryKey2(protocolID, channelID, reqID, rspID, sendKey, key):
-    keyH, keyL = int.to_bytes(key, 2)
+    keyH, keyL = int.to_bytes(key, 2, "big")
     message = [0x27, sendKey, keyH, keyL] if protocolID == ProtocolID.ISO15765 or ProtocolID.SW_ISO15765_PS else [0x04, 0x27, sendKey, keyH, keyL]
 
     sendOnly(protocolID, channelID, reqID, message)

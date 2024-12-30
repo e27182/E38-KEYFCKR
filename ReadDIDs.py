@@ -94,7 +94,7 @@ for did in range(0x00, 0x100):
     if didData != None:
         sHex = ''
         sChr = ''
-        sInt = "{:d}".format(int.from_bytes(didData)) if len(didData) == 4 else ''
+        sInt = "{:d}".format(int.from_bytes(didData, "big")) if len(didData) == 4 else ''
         
         for d in didData:
             sHex += "{:02x} ".format(d)

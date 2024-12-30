@@ -159,7 +159,6 @@ while cfg.phase in range(2, 4 + 1):
 
     startTime = time.time()
     algoLastLast = cfg.algoLast
-    algoLastLast = 0x73
     for algo in range(algoLastLast, 256):
 
         ikey = keyAll[algo]
@@ -184,11 +183,11 @@ while cfg.phase in range(2, 4 + 1):
         seed = askSeed2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.requestSeed)
 
         if cfg.phase == 2:
-            print(dtn(), f'Proto: GMlan; Algo: 0x{algo:2x} {algo}; ')
+            print(dtn(), f'Proto: GMlan; Algo: 0x{algo:2x} {algo}')
         if cfg.phase == 3:
-            print(dtn(), f'Proto: Class2; Algo: 0x{algo:2x} {algo}; ')
+            print(dtn(), f'Proto: Class2; Algo: 0x{algo:2x} {algo}')
         if cfg.phase == 4:
-            print(dtn(), f'Proto: Others Algo: 0x{algo:2x} {algo}; ')
+            print(dtn(), f'Proto: Others Algo: 0x{algo:2x} {algo}')
 
         if tryKey2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, ikey):
             powerOff(deviceID, powerOffPause)
@@ -252,7 +251,7 @@ while cfg.phase in range(5, 6 + 1):
 
         seed = askSeed2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.requestSeed)
 
-        print(dtn(), 'bkey:', addZ(str(bkey), 3), '; ', end='')
+        print(dtn(), 'Key: ', addZ(str(bkey), 3))
 
         if tryKey2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, currKey):
             clrb(channelID)
@@ -294,10 +293,10 @@ for ikey in range(cfg.ikeyLast, cfg.ikEnd, cfg.ikEnc):
         low, high = bytes(ikey)  # high и low changed!
 
     if cfg.phase == 8: # we already did it, and dont find seed key :-(
-        print('All phase completed. Key not found.') 
-        print('(damaged ECU? Bad connection? Bugs in this bruteforcer?)') 
-        print('To run again - delete:') 
-        print('history\\' + VIN + '.last.ini') 
+        print('All phase completed. Key not found.')
+        print('(damaged ECU? Bad connection? Bugs in this bruteforcer?)')
+        print('To run again - delete:')
+        print('history\\' + VIN + '.last.ini')
         break
 
     currKey = ((high << 8) + low)
