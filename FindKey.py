@@ -288,9 +288,9 @@ ikeyLastLast = cfg.ikeyLast
 for ikey in range(cfg.ikeyLast, cfg.ikEnd, cfg.ikEnc):
 
     if not cfg.swapByte:
-        high, low = bytes(ikey)  # high и low in normal order
+        high, low = get_bytes(ikey)  # high и low in normal order
     else:
-        low, high = bytes(ikey)  # high и low changed!
+        low, high = get_bytes(ikey)  # high и low changed!
 
     if cfg.phase == 8: # we already did it, and dont find seed key :-(
         print('All phase completed. Key not found.')

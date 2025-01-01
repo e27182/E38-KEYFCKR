@@ -7,7 +7,7 @@ from Logging import *
 
 endNoNewLine = os.linesep if showErr else ' '
 
-def bytes(num):  # Split "word" to high and low byte
+def get_bytes(num):  # Split "word" to high and low byte
     return num >> 8, num & 0xFF
 
 
@@ -271,32 +271,6 @@ def ProgrammingMode_requestProgrammingMode(protocolID, channelID, reqID, rspID):
     return False
 
 # Should be used only as a "broadcast" 01 01 FE, and should not be sent directly to the device but....
-def ProgrammingMode_requestProgrammingMode(protocolID, channelID, reqID, rspID):
-    message = [0xA5, 0x01] if protocolID == ProtocolID.ISO15765 or ProtocolID.SW_ISO15765_PS else [0x02, 0xA5, 0x01]
-
-    sendOnly(protocolID, channelID, reqID, message)
-
-    i = 0
-    while i < 10:
-        i += 1
-        msgRx = readOnly(channelID)
-
-        if not isResponse(msgRx, rspID):
-            continue
-
-        responseCode = msgRx[-1:][0]
-
-        errorRsp = ISO14229_ErrorHandler(responseCode, msgRx, responsePendingTimer=didPause)
-        if errorRsp == ErrorResponse.ContinueAfterResponsePending:
-            continue
-        elif errorRsp == ErrorResponse.Success:
-            return True
-        else:
-            return False
-
-    return False
-
-# Should be used only as a "broadcast" 01 01 FE, and should not be sent directly to the device but....
 def ProgrammingMode_enableProgrammingMode(protocolID, channelID, reqID, rspID):
     message = [0xA5, 0x03] if protocolID == ProtocolID.ISO15765 or ProtocolID.SW_ISO15765_PS else [0x02, 0xA5, 0x03]
 
@@ -431,7 +405,49 @@ def writeDID(protocolID, channelID, reqID, rspID, did, data : list):
                 return None
     
     return None
+
+MaxMemorySize = {
+    2: 4092,
+    3: 4091,
+    4: 4090
+}
+
+def getMemorySizeByMemoryAddressSize(memoryAddressSize:int):
+    return MaxMemorySize.get(memoryAddressSize, None)
+
+def readMemoryByAddress(protocolID, channelID, reqID, rspID, memoryAddressSize:int, memoryAddress:int, memorySize:int):
+    if memorySize > getMemorySizeByMemoryAddressSize(memoryAddressSize):
+        raise Exception('memorySize too big for specified memoryAddressSize.')
+
+    data = list(memoryAddress.to_bytes(memoryAddressSize, 'big')) + list(memorySize.to_bytes(2, 'big'))
+    message = [0x23] + data if protocolID == ProtocolID.ISO15765 or ProtocolID.SW_ISO15765_PS else [0x01 + len(data), 0x23] + data
+
+    sendOnly(protocolID, channelID, reqID, message)
+    
+    i = 0
+    while i < 10:
+        i += 1
+        msg = readOnly(channelID)
+
+        if not isResponse(msg, rspID):
+            continue
+
+        if protocolID == ProtocolID.ISO15765 and msg[4:5] == [0x63]: # successful response
+            return msg[5 + memoryAddressSize:]
         
+        if protocolID == ProtocolID.CAN and msg[4:6] == [memorySize + memoryAddressSize, 0x63]: # successful response
+            return msg[6 + memoryAddressSize:]
+
+        if msg[-3:-1] == [0x7F, 0x23]:
+            error = msg[-1:][0]
+
+            errorRsp = ISO14229_ErrorHandler(error, msg, responsePendingTimer=didPause)
+            if errorRsp == ErrorResponse.ContinueAfterResponsePending:
+                continue
+            else:
+                return None
+    
+    return None
 
 def AEMode(protocolID, channelID, reqID, rspID, cpid, cb):
     message = [0xAE, cpid] + cb if protocolID == ProtocolID.ISO15765 or ProtocolID.SW_ISO15765_PS else [0x07, 0xAE, cpid] + cb
