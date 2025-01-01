@@ -244,6 +244,73 @@ def ReturnToNormal(protocolID, channelID, reqID, rspID):  # disable normal commu
 
     return False
 
+# Should be used only as a "broadcast" 01 01 FE, and should not be sent directly to the device but....
+def ProgrammingMode_requestProgrammingMode(protocolID, channelID, reqID, rspID):
+    message = [0xA5, 0x01] if protocolID == ProtocolID.ISO15765 or ProtocolID.SW_ISO15765_PS else [0x02, 0xA5, 0x01]
+
+    sendOnly(protocolID, channelID, reqID, message)
+
+    i = 0
+    while i < 10:
+        i += 1
+        msgRx = readOnly(channelID)
+
+        if not isResponse(msgRx, rspID):
+            continue
+
+        responseCode = msgRx[-1:][0]
+
+        errorRsp = ISO14229_ErrorHandler(responseCode, msgRx, responsePendingTimer=didPause)
+        if errorRsp == ErrorResponse.ContinueAfterResponsePending:
+            continue
+        elif errorRsp == ErrorResponse.Success:
+            return True
+        else:
+            return False
+
+    return False
+
+# Should be used only as a "broadcast" 01 01 FE, and should not be sent directly to the device but....
+def ProgrammingMode_requestProgrammingMode(protocolID, channelID, reqID, rspID):
+    message = [0xA5, 0x01] if protocolID == ProtocolID.ISO15765 or ProtocolID.SW_ISO15765_PS else [0x02, 0xA5, 0x01]
+
+    sendOnly(protocolID, channelID, reqID, message)
+
+    i = 0
+    while i < 10:
+        i += 1
+        msgRx = readOnly(channelID)
+
+        if not isResponse(msgRx, rspID):
+            continue
+
+        responseCode = msgRx[-1:][0]
+
+        errorRsp = ISO14229_ErrorHandler(responseCode, msgRx, responsePendingTimer=didPause)
+        if errorRsp == ErrorResponse.ContinueAfterResponsePending:
+            continue
+        elif errorRsp == ErrorResponse.Success:
+            return True
+        else:
+            return False
+
+    return False
+
+# Should be used only as a "broadcast" 01 01 FE, and should not be sent directly to the device but....
+def ProgrammingMode_enableProgrammingMode(protocolID, channelID, reqID, rspID):
+    message = [0xA5, 0x03] if protocolID == ProtocolID.ISO15765 or ProtocolID.SW_ISO15765_PS else [0x02, 0xA5, 0x03]
+
+    sendOnly(protocolID, channelID, reqID, message)
+
+    i = 0
+    while i < 10:
+        i += 1
+
+        if readOnly(channelID, ReadTimeout=100).DataSize == 0: # wait at least 100ms
+            return True
+
+    return False
+    
 
 def askSeed2(protocolID, channelID, reqID, rspID, requestSeed):  # Asking the Seed
     message = [0x27, requestSeed] if protocolID == ProtocolID.ISO15765 or ProtocolID.SW_ISO15765_PS else [0x02, 0x27, requestSeed]
@@ -334,10 +401,40 @@ def readDID(protocolID, channelID, reqID, rspID, did):
                 return None
     
     return None
+
+def writeDID(protocolID, channelID, reqID, rspID, did, data : list):
+    message = [0x3B, did] + data if protocolID == ProtocolID.ISO15765 or ProtocolID.SW_ISO15765_PS else [0x02, 0x3B, did] + data
+
+    sendOnly(protocolID, channelID, reqID, message)
+    
+    i = 0
+    while i < 10:
+        i += 1
+        msg = readOnly(channelID)
+
+        if not isResponse(msg, rspID):
+            continue
+
+        if protocolID == ProtocolID.ISO15765 and msg[4:6] == [0x7B, did]: # successful response
+            return msg[6:]
+        
+        if protocolID == ProtocolID.CAN and msg[4:7] == [0x02, 0x7B, did]: # successful response
+            return msg[7:]
+
+        if msg[-3:-1] == [0x7F, 0x1A]:
+            error = msg[-1:][0]
+
+            errorRsp = ISO14229_ErrorHandler(error, msg, responsePendingTimer=didPause)
+            if errorRsp == ErrorResponse.ContinueAfterResponsePending:
+                continue
+            else:
+                return None
+    
+    return None
         
 
 def AEMode(protocolID, channelID, reqID, rspID, cpid, cb):
-    message = [0xAE, cpid, cb[0], cb[1], cb[2], cb[3], cb[4]] if protocolID == ProtocolID.ISO15765 or ProtocolID.SW_ISO15765_PS else [0x07, 0xAE, cpid, cb[0], cb[1], cb[2], cb[3], cb[4]]
+    message = [0xAE, cpid] + cb if protocolID == ProtocolID.ISO15765 or ProtocolID.SW_ISO15765_PS else [0x07, 0xAE, cpid] + cb
 
     sendOnly(protocolID, channelID, reqID, message)
     
@@ -354,6 +451,8 @@ def AEMode(protocolID, channelID, reqID, rspID, cpid, cb):
         
         if protocolID == ProtocolID.CAN and msg[4:7] == [0x02, 0xEE, cpid]: # successful response
             return True
+
+        error = 0
 
         if msg[-3:-1] == [0x7F, 0xAE]:
             error = msg[-1:][0]
@@ -418,6 +517,7 @@ ISO14229_ErrorMapping = {
     0x92: ("voltageTooHigh", ErrorResponse.Error, None),
     0x93: ("voltageTooLow", ErrorResponse.Error, None),
     0xE3: ("DeviceControlLimitsExceeded", ErrorResponse.Error, lambda _, __, msg: print(f"Limits: {msg[-2:]} {[hex(x) for x in msg[-2:]]}")),  # AE Mode
+    0xE5: ("ProgrammingMode Positive Response Service Id", ErrorResponse.Success, None), # A5 ProgrammingMode
 }
 
 def ISO14229_ErrorHandler(error: int, msg, delayTimer: int = 0.5, responsePendingTimer: int = 0.5) -> ErrorResponse:
