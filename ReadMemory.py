@@ -28,56 +28,33 @@ ret, deviceID = J2534.ptOpen()
 
 powerCycle(deviceID, powerOffPause, powerOnPause)
 
-## -------------------------------- ISO Proto init / Get VIN ----------------------------------- ##
+## -------------------------------- ISO Proto init ----------------------------------- ##
 
-protocolID = ProtocolID.ISO15765
-ret, channelID = J2534.ptConnect(deviceID, protocolID, 0x00000000, BaudRate.B500K)
-print(dtn(), '[ ISO15765 Connected ]')
+# protocolID = ProtocolID.ISO15765
+# ret, channelID = J2534.ptConnect(deviceID, protocolID, 0x00000000, BaudRate.B500K)
+# print(dtn(), '[ ISO15765 Connected ]')
+
+# ret, filterID = ISO15765_SetFilter(protocolID, channelID, cfg.reqCANId, cfg.rspCANId)
+
+## -------------------------------- SW ISO Proto init ----------------------------------- ##
+
+SW_PS_HVWakeup(deviceID)
+
+protocolID = ProtocolID.SW_ISO15765_PS
+ret, channelID = J2534.ptConnect(deviceID, protocolID, 0x00000000, BaudRate.B33K)
+print(dtn(), '[ SW_ISO15765_PS Connected ]')
+
+SW_PS_SetConfig(channelID)
 
 ret, filterID = ISO15765_SetFilter(protocolID, channelID, cfg.reqCANId, cfg.rspCANId)
 
-## -------------------------------- Unlock access ----------------------------------- ##
-
-# SW_PS_HVWakeup(deviceID)
-
-# protocolID = ProtocolID.SW_CAN_PS
-# ret, channelID = J2534.ptConnect(deviceID, protocolID, 0x00000800, BaudRate.B33K)
-# print(dtn(), '[ CAN Connected ]')
-
-# SW_PS_SetConfig(channelID, addLoopback=False)
-
-# ret, filterID = CAN_SetFilter(protocolID, channelID, cfg.reqCANId, cfg.rspCANId)
-
-# #send(protocolID, channelID, cfg.reqCANId, [0x02, 0x10, 0x02], skipTillMsgNum=3)
-# #send(protocolID, channelID, cfg.reqCANId, [0x01, 0x28], skipTillMsgNum=3)
-
-# clrb(channelID)
-# J2534.ptStopMsgFilter(channelID, filterID)
-# J2534.ptDisconnect(channelID)
-
 ##############################################################
-
-# protocolID = ProtocolID.SW_ISO15765_PS
-# ret, channelID = J2534.ptConnect(deviceID, protocolID, 0x00000000, BaudRate.B33K)
-# print(dtn(), '[ SW_ISO15765_PS Connected ]')
-
-##############################################################
-
-#SW_PS_SetConfig(channelID)
-
-# ## -------------------------------------- CAN Proto init --------------------------------------- ##
-
-# protocolID = ProtocolID.CAN
-# ret, channelID = J2534.ptConnect(deviceID, protocolID, 0x00000800, BaudRate.B500K)
-# print(dtn(), '[ CAN Connected ]')
-
-# CAN_SetFilter(protocolID, channelID, cfg.reqCANId, cfg.rspCANId)
-
-## -------------------------------------- Authenticate --------------------------------------- ##
 
 print(dtn(), 'Start diag')
-if not startDiag(protocolID, channelID, cfg.reqCANId, cfg.rspCANId):
-    quit(-1)
+
+# IPC: comment it, it's okay to have false here
+# if not startDiag(protocolID, channelID, cfg.reqCANId, cfg.rspCANId):
+#     quit(-1)
 
 print(dtn(), 'Disable comm')
 if not disableComm(protocolID, channelID, cfg.reqCANId, cfg.rspCANId):
@@ -86,12 +63,45 @@ if not disableComm(protocolID, channelID, cfg.reqCANId, cfg.rspCANId):
 seed = askSeed2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.requestSeed)
 tryKey2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, cfg.keys[cfg.secLevel - 1])
 
-memoryAddressSize = 3 # bytes
-startAddress = 0x003000
-#endAddress = 0x0FFFFF + 1
-endAddress = 0x005FFF + 1
+### EBCM
+# memoryAddressSize = 2 # bytes
+# startAddress = 0x0000
+# endAddress = 0x07FF+1
+# memorySize = 0x01
+
+### BCM
+# memoryAddressSize = 4 # bytes
+# startAddress = 0x000000
+# endAddress = 0x100001
+# memorySize = getMemorySizeByMemoryAddressSize(memoryAddressSize)
+
+### TCM
+# memoryAddressSize = 4 # bytes
+# startAddress = 0x000000
+# endAddress = 0x200000
+# memorySize = 0x10#getMemorySizeByMemoryAddressSize(memoryAddressSize)
+
+### IPC
+memoryAddressSize = 4 # bytes
+startAddress = 0x000000
+endAddress = 0x200000
+memorySize = 0x08#getMemorySizeByMemoryAddressSize(memoryAddressSize)
+
+### ECM
+# memoryAddressSize = 3 # bytes
+# startAddress = 0x000000
+# endAddress = 0x0FFFFF + 1
+# endAddress = 0x005FFF + 1
+# memorySize = 0xFB # ECM, experimentally identified
+
 #memorySize = getMemorySizeByMemoryAddressSize(memoryAddressSize)
-memorySize = 0xFB # ECM, experimentally identified
+
+for memorySize in range(41302, 0xFFFF):
+    print(memorySize)
+    data = readMemoryByAddress(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, memoryAddressSize, 0, memorySize, readTimeoutMs=10000)
+    if data != None:
+        break
+
 with open("ECU_DUMP.bin", "wb") as f:
     for memoryAddress in range(startAddress, endAddress, memorySize):
         if endAddress <= memoryAddress + memorySize:
@@ -99,7 +109,10 @@ with open("ECU_DUMP.bin", "wb") as f:
 
         print(dtn(), "[0x{:04X} - 0x{:04X}]".format(memoryAddress, memoryAddress + memorySize))
 
-        data = readMemoryByAddress(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, memoryAddressSize, memoryAddress, memorySize)
+        data = readMemoryByAddress(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, memoryAddressSize, memoryAddress, memorySize, readTimeoutMs=10000)
+
+        if data == None:
+            break
 
         sHex = ''
         if data != None:

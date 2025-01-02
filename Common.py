@@ -203,7 +203,7 @@ def startDiag(protocolID, channelID, reqID, rspID):  # start diagnostic session
 
         if msgRx[-1:] == [0x50] or msgRx[-2:] == [0x10, 0x22]:
             return True
-        elif msgRx[-3:-2] == [0x7F, 0x10]:
+        elif msgRx[-3:-1] == [0x7F, 0x10]:
             error = msgRx[-1:][0]
 
             errorRsp = ISO14229_ErrorHandler(error, msgRx, responsePendingTimer=startDiagPause)
@@ -407,17 +407,17 @@ def writeDID(protocolID, channelID, reqID, rspID, did, data : list):
     return None
 
 MaxMemorySize = {
-    2: 4092,
-    3: 4091,
-    4: 4090
+    2: 4092, # 0xFFC
+    3: 4091, # 0xFFB
+    4: 4090  # 0xFFA
 }
 
 def getMemorySizeByMemoryAddressSize(memoryAddressSize:int):
     return MaxMemorySize.get(memoryAddressSize, None)
 
-def readMemoryByAddress(protocolID, channelID, reqID, rspID, memoryAddressSize:int, memoryAddress:int, memorySize:int):
-    if memorySize > getMemorySizeByMemoryAddressSize(memoryAddressSize):
-        raise Exception('memorySize too big for specified memoryAddressSize.')
+def readMemoryByAddress(protocolID, channelID, reqID, rspID, memoryAddressSize:int, memoryAddress:int, memorySize:int, readTimeoutMs: int):
+    #if memorySize > getMemorySizeByMemoryAddressSize(memoryAddressSize):
+        #raise Exception('memorySize too big for specified memoryAddressSize.')
 
     data = list(memoryAddress.to_bytes(memoryAddressSize, 'big')) + list(memorySize.to_bytes(2, 'big'))
     message = [0x23] + data if protocolID == ProtocolID.ISO15765 or ProtocolID.SW_ISO15765_PS else [0x01 + len(data), 0x23] + data
@@ -427,7 +427,7 @@ def readMemoryByAddress(protocolID, channelID, reqID, rspID, memoryAddressSize:i
     i = 0
     while i < 10:
         i += 1
-        msg = readOnly(channelID)
+        msg = readOnly(channelID, readTimeoutMs)
 
         if not isResponse(msg, rspID):
             continue
