@@ -196,16 +196,18 @@ def ptWriteMsgs(ChannelID, Msgs, NumMsgs, Timeout):
     ret = j2534lib.PassThruWriteMsgs(ChannelID, ct.byref(Msgs), ct.byref(ct.c_ulong(NumMsgs)), Timeout)
     _err('ptWtiteMsgs',ret)
     return ret
-def ptStartPeriodicMsg(ChannelID, Msgs, MsgID, TimeInterval):
-    """ TODO 
+def ptStartPeriodicMsg(ChannelID, Msgs, TimeInterval):
+    """ start periodic messaging, add timer
     """
+    MsgID = ct.c_ulong()
     ret = j2534lib.PassThruStartPeriodicMsg(ChannelID, ct.byref(Msgs), ct.byref(MsgID), TimeInterval)
     _err('ptStartPeriodicMsg',ret)
-    return ret
+    return ret, MsgID.value
 def ptStopPeriodicMsg(ChannelID, MsgID):
-    """ stop period msg
+    """ stop periodic messaging, remove timer
     """
     ret = j2534lib.PassThruStopPeriodicMsg(ChannelID, MsgID)
+    _err('ptStopPeriodicMsg',ret)
     return ret
 def ptStartMsgFilter(ChannelID, FilterType, MaskMsg, PatternMsg, FlowControlMsg):
     """ start the msg filter

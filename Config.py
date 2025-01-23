@@ -11,8 +11,11 @@ secLevel = 1 # [1,2] - SPS, [3,4] - DevCtrl, [5,6][7,8][9,A] - Rsrvd, [B,C][D,E]
 requestSeed = 2 * secLevel - 1
 sendKey = 2 * secLevel
 
-# keys array: lvl 1, lvl 3, etc
-keys = [0x1111, 0x2222]
+# Module
+keys = {
+    0x02: 0x1111,
+    0x04: 0x2222
+}
 
 # uncomment what you need
 # # reqCANId = 0x00000241 # HS-CAN, BCM
@@ -36,7 +39,7 @@ cfg = configparser.ConfigParser()
 global ikeyLast, ikBeg, ikEnd, ikEnc, swapByte, runForward, algoLast, bkeyLast, phase
 
 phase = 0  # 0 = default key, 1 = 256 standard algos, 2 = bruteforce
-runForward = True  # Key from 0000 to FFFF, or backward
+runForward = False  # Key from 0000 to FFFF, or backward
 swapByte = False  # Swap high and low Key Byte
 
 if runForward:  # Forward order

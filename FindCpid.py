@@ -8,33 +8,13 @@ import Config as cfg
 
 ## ----------------------------------------- MAIN CODE ----------------------------------------- ##
 
-devices = J2534.getDevices()
-for id in devices:  # List of J2534 devices
-    if id + 1 == cfg.devIndex:
-        print('> ', end='')
-    else:
-        print('  ', end='')
-    print(id + 1, devices[id])
-    path = devices[id]['FunctionLibrary'].rsplit('\\', 1)[0] + '\\'
-    os.add_dll_directory(path)  # Add .dll path to python searh for dependencies
-
-while not cfg.devIndex in range(1, len(devices) + 1):  # if default devIndex not in list - choose device
-    print('Select: ', end='')
-    devIndexStr = input()
-    if devIndexStr.isnumeric(): cfg.devIndex = int(devIndexStr)
-
-J2534.setDevice(cfg.devIndex - 1)
-ret, deviceID = J2534.ptOpen()
+deviceID = device_open(cfg.devIndex)
 
 powerCycle(deviceID, powerOffPause, powerOnPause)
 
 ## -------------------------------- ISO Proto init / Get VIN ----------------------------------- ##
 
-protocolID = ProtocolID.ISO15765
-ret, channelID = J2534.ptConnect(deviceID, protocolID, 0x00000000, BaudRate.B500K)
-print(dtn(), '[ ISO15765 Connected ]')
-
-ret, filterID = ISO15765_SetFilter(protocolID, channelID, cfg.reqCANId, cfg.rspCANId)
+protocolID, channelID, filterID = ISO15765_Connect(deviceID, cfg.reqCANId, cfg.rspCANId)
 
 ## -------------------------------- Unlock access ----------------------------------- ##
 
@@ -84,7 +64,7 @@ if not disableComm(protocolID, channelID, cfg.reqCANId, cfg.rspCANId):
     quit(-1)
 
 seed = askSeed2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.requestSeed)
-tryKey2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, cfg.keys[cfg.secLevel - 1])
+tryKey2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, cfg.keys[cfg.sendKey])
 
 ## -------------------------------------- Iterate CPIDs --------------------------------------- ##
 

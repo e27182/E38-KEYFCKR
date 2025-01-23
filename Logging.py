@@ -18,7 +18,7 @@ class Logger(object):
         self.log.flush()
 
 def dtn():
-    return str(datetime.datetime.now())[:-4]
+    return str(datetime.datetime.now())
 
 showErr = True  # Show debug info
 logfile = 'logs\\' + dtn().replace(':', '_')[:-3] + ' E38-KEYFCKR.log'
