@@ -80,7 +80,7 @@ print(dtn(), 'Disable comm')
 if not disableComm(protocolID, channelID, cfg.reqCANId, cfg.rspCANId):
     quit(-1)
 
-seed = askSeed2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.requestSeed)
+seed = askSeed(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.requestSeed)
 for algo in range(000, 256):
     keyAllgmlan.append(abs(so.get_key(seed, algo, 1)))
     keyAllclass2.append(abs(so.get_key(seed, algo, 2)))
@@ -93,7 +93,7 @@ keyDefault = keyAllgmlan[cfg.defaultKeyAlgo]
 if cfg.phase == 0:
     print(dtn(), '[ Phase', cfg.phase, '- Default KEY ]')
     print(dtn(), 'Default ')
-    if tryKey2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, keyDefault):
+    if tryKey(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, keyDefault):
         exit(0)
 
     cfg.phase = 1
@@ -113,10 +113,10 @@ if cfg.phase == 1:
     print(dtn(), 'Disable comm')
     disableComm(protocolID, channelID, cfg.reqCANId, cfg.rspCANId)
 
-    seed = askSeed2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.requestSeed)
+    seed = askSeed(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.requestSeed)
 
     print(dtn(), 'Seed=Key')
-    if tryKey2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, seed):
+    if tryKey(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, seed):
         exit(0)
 
     cfg.phase = 2
@@ -160,7 +160,7 @@ while cfg.phase in range(2, 4 + 1):
         print(dtn(), 'Disable comm')
         disableComm(protocolID, channelID, cfg.reqCANId, cfg.rspCANId)
 
-        seed = askSeed2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.requestSeed)
+        seed = askSeed(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.requestSeed)
 
         if cfg.phase == 2:
             print(dtn(), f'Proto: GMlan; Algo: 0x{algo:2x} {algo}')
@@ -169,7 +169,7 @@ while cfg.phase in range(2, 4 + 1):
         if cfg.phase == 4:
             print(dtn(), f'Proto: Others Algo: 0x{algo:2x} {algo}')
 
-        if tryKey2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, ikey):
+        if tryKey(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, ikey):
             powerOff(deviceID, powerOffPause)
             J2534.ptDisconnect(channelID)
             J2534.ptClose(deviceID)
@@ -229,11 +229,11 @@ while cfg.phase in range(5, 6 + 1):
         print(dtn(), 'Disable comm')
         disableComm(protocolID, channelID, cfg.reqCANId, cfg.rspCANId)
 
-        seed = askSeed2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.requestSeed)
+        seed = askSeed(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.requestSeed)
 
         print(dtn(), 'Key: ', addZ(str(bkey), 3))
 
-        if tryKey2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, currKey):
+        if tryKey(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, currKey):
             clrb(channelID)
             powerOff(deviceID, powerOffPause)
             J2534.ptDisconnect(channelID)
@@ -296,11 +296,11 @@ for ikey in range(cfg.ikeyLast, cfg.ikEnd, cfg.ikEnc):
     print(dtn(), 'Disable comm')
     disableComm(protocolID, channelID, cfg.reqCANId, cfg.rspCANId)
 
-    seed = askSeed2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.requestSeed)
+    seed = askSeed(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.requestSeed)
 
     print(dtn(), ' ', end='')
 
-    if tryKey2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, currKey):
+    if tryKey(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, currKey):
         break  # We found it!
     else:
         cfg.ikeyLast = ikey

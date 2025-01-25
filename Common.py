@@ -234,11 +234,12 @@ powerOffPause = 0.5
 powerOnPause = 0.5  # pause between power off and on
 startDiagPause = 1
 disableCommPause = 0.5
-seedPause = 10  # pause between askSeed commands
+seedPause = 10  # pause between askSeed commands, 10 sec - normal mode, 16 sec - programming mode
+memReadPause = 0.1
 didPause = 1
 cpidPause = 1
 
-def simpleOperation(protocolID, channelID, reqID, rspID, operationAndParams, retries = 10, delayTimer=0.5, responsePendingTimer=0.5, successfulResponse = None):  # simple standard operation
+def standardCommRoutine(protocolID, channelID, reqID, rspID, operationAndParams, retries = 10, delayTimer=0.5, responsePendingTimer=0.5, successfulResponse = None):  # simple standard operation
     message = operationAndParams if protocolID == ProtocolID.ISO15765 or ProtocolID.SW_ISO15765_PS else [len(operationAndParams)].extend(operationAndParams) # for CAN
     operation = operationAndParams[0]
     successfulResponse = operation + 0x40 if successfulResponse == None else successfulResponse
@@ -272,13 +273,13 @@ def simpleOperation(protocolID, channelID, reqID, rspID, operationAndParams, ret
     return False    
 
 def startDiag(protocolID, channelID, reqID, rspID):  # start diagnostic session
-    return simpleOperation(protocolID, channelID, reqID, rspID, [0x10, 0x02])
+    return standardCommRoutine(protocolID, channelID, reqID, rspID, [0x10, 0x02])
 
 def disableComm(protocolID, channelID, reqID, rspID):  # disable normal communications
-    return simpleOperation(protocolID, channelID, reqID, rspID, [0x28])
+    return standardCommRoutine(protocolID, channelID, reqID, rspID, [0x28])
 
 def ReturnToNormal(protocolID, channelID, reqID, rspID):  # enable normal communications
-    return simpleOperation(protocolID, channelID, reqID, rspID, [0x20])
+    return standardCommRoutine(protocolID, channelID, reqID, rspID, [0x20])
 
 def CAN_BENCH_ReturnToNormal(protocolID, channelID, reqID, rspID):
     message = [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
@@ -296,7 +297,7 @@ def CAN_BENCH_ReturnToNormal(protocolID, channelID, reqID, rspID):
 
 # Should be used only as a "broadcast" 01 01 FE, and should not be sent directly to the device but....
 def ProgrammingMode_requestProgrammingMode(protocolID, channelID, reqID, rspID):
-    return simpleOperation(protocolID, channelID, reqID, rspID, [0xA5, 0x01])
+    return standardCommRoutine(protocolID, channelID, reqID, rspID, [0xA5, 0x01])
 
 # Should be used only as a "broadcast" 01 01 FE, and should not be sent directly to the device but....
 def ProgrammingMode_enableProgrammingMode(protocolID, channelID, reqID, rspID):
@@ -314,8 +315,8 @@ def ProgrammingMode_enableProgrammingMode(protocolID, channelID, reqID, rspID):
     return False
     
 
-def askSeed2(protocolID, channelID, reqID, rspID, requestSeed):  # Asking the Seed
-    ret = simpleOperation(protocolID, channelID, reqID, rspID, [0x27, requestSeed], delayTimer=seedPause)
+def askSeed(protocolID, channelID, reqID, rspID, requestSeed):  # Asking the Seed
+    ret = standardCommRoutine(protocolID, channelID, reqID, rspID, [0x27, requestSeed], delayTimer=seedPause)
 
     if isinstance(ret, list):
         seed = int.from_bytes(ret[1:], "big")
@@ -324,12 +325,12 @@ def askSeed2(protocolID, channelID, reqID, rspID, requestSeed):  # Asking the Se
     
     return ret
 
-def tryKey2(protocolID, channelID, reqID, rspID, sendKey, key):
+def tryKey(protocolID, channelID, reqID, rspID, sendKey, key):
     byteLen = (int.bit_length(key) + 7) // 8
     byteLen = 2 if byteLen < 2 else byteLen
     
     keyData = list(int.to_bytes(key, byteLen, "big"))
-    ret = simpleOperation(protocolID, channelID, reqID, rspID, [0x27, sendKey] + keyData, delayTimer=seedPause)
+    ret = standardCommRoutine(protocolID, channelID, reqID, rspID, [0x27, sendKey] + keyData, delayTimer=seedPause)
 
     if ret == [0x02]:
         print(f'KEY ACCEPTED: {addZ(hex(key)[2:], 4)}')
@@ -338,10 +339,10 @@ def tryKey2(protocolID, channelID, reqID, rspID, sendKey, key):
     return ret
 
 def readDID(protocolID, channelID, reqID, rspID, did):
-    return simpleOperation(protocolID, channelID, reqID, rspID, [0x1a, did], responsePendingTimer=didPause)
+    return standardCommRoutine(protocolID, channelID, reqID, rspID, [0x1a, did], responsePendingTimer=didPause)
 
 def writeDID(protocolID, channelID, reqID, rspID, did, data : list):
-    return simpleOperation(protocolID, channelID, reqID, rspID, [0x3b, did], responsePendingTimer=didPause)
+    return standardCommRoutine(protocolID, channelID, reqID, rspID, [0x3b, did], responsePendingTimer=didPause)
 
 MaxMemorySize = {
     2: 4092, # 0xFFC
@@ -352,22 +353,22 @@ MaxMemorySize = {
 def getMemorySizeByMemoryAddressSize(memoryAddressSize:int):
     return MaxMemorySize.get(memoryAddressSize, None)
 
-def readMemoryByAddress(protocolID, channelID, reqID, rspID, memoryAddressSize:int, memoryAddress:int, memorySize:int, readTimeoutMs: int):
+def readMemoryByAddress(protocolID, channelID, reqID, rspID, memoryAddressSize:int, memoryAddress:int, memorySize:int):
     #if memorySize > getMemorySizeByMemoryAddressSize(memoryAddressSize):
         #raise Exception('memorySize too big for specified memoryAddressSize.')
 
     data = list(memoryAddress.to_bytes(memoryAddressSize, 'big')) + list(memorySize.to_bytes(2, 'big'))
-    return simpleOperation(protocolID, channelID, reqID, rspID, [0x23] + data, responsePendingTimer=didPause)
+    return standardCommRoutine(protocolID, channelID, reqID, rspID, [0x23] + data, responsePendingTimer=memReadPause)
 
 def writeMemoryByAddress(protocolID, channelID, reqID, rspID, alfid, memoryAddress, memorySize, data:list):
     msgData = list(alfid.to_bytes(1, 'big')) + list(memoryAddress.to_bytes(2, 'big')) + list(memorySize.to_bytes(1, 'big')) + data
-    return simpleOperation(protocolID, channelID, reqID, rspID, [0x3D] + msgData, responsePendingTimer=didPause)
+    return standardCommRoutine(protocolID, channelID, reqID, rspID, [0x3D] + msgData, responsePendingTimer=didPause)
 
 def routineControl(protocolID, channelID, reqID, rspID, routineId):
-    return simpleOperation(protocolID, channelID, reqID, rspID, [0x31, routineId], responsePendingTimer=didPause, successfulResponse=0xFF)
+    return standardCommRoutine(protocolID, channelID, reqID, rspID, [0x31, routineId], responsePendingTimer=didPause, successfulResponse=0xFF)
 
 def AEMode(protocolID, channelID, reqID, rspID, cpid, cb):
-    return simpleOperation(protocolID, channelID, reqID, rspID, [0xAE, cpid], responsePendingTimer=cpidPause)
+    return standardCommRoutine(protocolID, channelID, reqID, rspID, [0xAE, cpid], responsePendingTimer=cpidPause)
 
 def StartTesterPresentMsg(protocolID, channelID, timeInterval = 500):
     testerPresentMsg = J2534.ptTxMsg(protocolID, TxFlags.ISO15765_FRAME_PAD | TxFlags.ISO15765_ADDR_TYPE)

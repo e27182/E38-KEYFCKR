@@ -4,7 +4,7 @@ import shutil
 
 ## -------------------------------------- Default Settings ------------------------------------- ##
 
-devIndex = 4  # index of default J2534 interface
+devIndex = 4 # index of default J2534 interface
 defaultKeyAlgo = 0x92  # Default algo for E38 ECU (proto gmlan)
 
 secLevel = 1 # [1,2] - SPS, [3,4] - DevCtrl, [5,6][7,8][9,A] - Rsrvd, [B,C][D,E][F,10] - Rsrvd by manufacturer < FA

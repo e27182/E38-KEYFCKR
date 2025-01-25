@@ -14,7 +14,7 @@ powerCycle(deviceID, powerOffPause, powerOnPause)
 
 ## -------------------------------- ISO Proto init / Get VIN ----------------------------------- ##
 
-protocolID, channelID, filterID, testerPresentMsgID = ISO15765_Connect(deviceID, cfg.reqCANId, cfg.rspCANId)
+protocolID, channelID, filterID = ISO15765_Connect(deviceID, cfg.reqCANId, cfg.rspCANId)
 
 ## -------------------------------- Unlock access ----------------------------------- ##
 
@@ -67,8 +67,8 @@ if not ProgrammingMode_enableProgrammingMode(protocolID, channelID, cfg.reqCANId
     quit(-1)
 
 print(dtn(), 'Unlock (seed\\key)')
-seed = askSeed2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.requestSeed)
-tryKey2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, cfg.keys[cfg.sendKey])
+seed = askSeed(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.requestSeed)
+tryKey(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, cfg.keys[cfg.sendKey])
 
 for did in range(0x00, 0x100):
     print(dtn(), did, "0x{:02x}".format(did), end=endNoNewLine)

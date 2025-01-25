@@ -63,8 +63,8 @@ print(dtn(), 'Disable comm')
 if not disableComm(protocolID, channelID, cfg.reqCANId, cfg.rspCANId):
     quit(-1)
 
-seed = askSeed2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.requestSeed)
-tryKey2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, cfg.keys[cfg.sendKey])
+seed = askSeed(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.requestSeed)
+tryKey(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, cfg.keys[cfg.sendKey])
 
 ## -------------------------------------- Iterate CPIDs --------------------------------------- ##
 
