@@ -39,16 +39,16 @@ print(dtn(), 'Disable comm')
 if not disableComm(protocolID, channelID, cfg.reqCANId, cfg.rspCANId):
     quit(-1)
 
-print(dtn(), 'Programming mode')
-if not ProgrammingMode_requestProgrammingMode(protocolID, channelID, cfg.reqCANId, cfg.rspCANId):
-    quit(-1)
+# print(dtn(), 'Programming mode')
+# if not ProgrammingMode_requestProgrammingMode(protocolID, channelID, cfg.reqCANId, cfg.rspCANId):
+#     quit(-1)
 
-if not ProgrammingMode_enableProgrammingMode(protocolID, channelID, cfg.reqCANId, cfg.rspCANId):
-    quit(-1)
+# if not ProgrammingMode_enableProgrammingMode(protocolID, channelID, cfg.reqCANId, cfg.rspCANId):
+#     quit(-1)
 
 print(dtn(), 'Unlock lvl 1 (seed\key)')
-seed = askSeed2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.requestSeed)
-tryKey2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, cfg.keys[cfg.sendKey])
+seed = askSeed(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.requestSeed)
+tryKey(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, cfg.keys[cfg.sendKey])
 
 ### EBCM
 # memoryAddressSize = 2 # bytes
@@ -62,12 +62,12 @@ tryKey2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, cfg.keys
 # endAddress = 0x100001
 # memorySize = getMemorySizeByMemoryAddressSize(memoryAddressSize)
 
-### TCM
-# memoryAddressSize = 4 # bytes
-# startAddress = 0x000000
-# #endAddress = 0x200000
-# endAddress = 0x000500
-# memorySize = 0x10 #getMemorySizeByMemoryAddressSize(memoryAddressSize)
+## TCM
+memoryAddressSize = 4 # bytes
+startAddress = 0x000000
+endAddress = 0x200000
+#endAddress = 0x000500
+memorySize = 0x10 #getMemorySizeByMemoryAddressSize(memoryAddressSize)
 
 ### IPC
 # memoryAddressSize = 4 # bytes
@@ -75,19 +75,19 @@ tryKey2(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, cfg.keys
 # endAddress = 0x200000
 # memorySize = 0x08#getMemorySizeByMemoryAddressSize(memoryAddressSize)
 
-### ECM
-memoryAddressSize = 3 # bytes
-startAddress = 0x00C300
-endAddress = 0x00C45F + 1
-#endAddress = 0x0FFFFF + 1
-memorySize = 0xFB # ECM, experimentally identified
+# ### ECM
+# memoryAddressSize = 3 # bytes
+# startAddress = 0x00C300
+# endAddress = 0x00C45F + 1
+# #endAddress = 0x0FFFFF + 1
+# memorySize = 0xFB # ECM, experimentally identified
 
 #memorySize = getMemorySizeByMemoryAddressSize(memoryAddressSize)
 
 ######## Search for proper memorySize
 # for memorySize in range(0x0000, 0xFFFF):
 #     print(memorySize)
-#     data = readMemoryByAddress(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, memoryAddressSize, 0, memorySize, readTimeoutMs=10000)
+#     data = readMemoryByAddress(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, memoryAddressSize, 0, memorySize)
 #     if data != None:
 #         break
 ###################################
@@ -96,25 +96,72 @@ with open("ECU_DUMP.bin", "wb") as f:
     for memoryAddress in range(startAddress, endAddress, memorySize):
         if endAddress <= memoryAddress + memorySize:
             memorySize = endAddress - memoryAddress
-
+            
         print(dtn(), "[0x{:04X} - 0x{:04X}]".format(memoryAddress, memoryAddress + memorySize))
 
-        data = readMemoryByAddress(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, memoryAddressSize, memoryAddress, memorySize, readTimeoutMs=10000)
+        reconnectCount = 0
+        while reconnectCount < 2:
+            data = readMemoryByAddress(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, memoryAddressSize, memoryAddress, memorySize)
 
-        if data == None:
-            # break # timeout or incorrect memorySize
-            f.write(bytearray([0xFF] * memorySize))
-            print(dtn(), 'EMPTY result written')
+            # should not be the case
+            # if data == None:
+            #     # break # timeout or incorrect memorySize
+            #     f.write(bytearray([0xC0] * memorySize))
+            #     print(dtn(), 'EMPTY result written: 0xC0')
+            #     continue
+
+            if data != False:
+                break # continue processing
+
+            f.flush()
+
+            reconnectCount += 1
+            if reconnectCount == 2:
+                break
+
+            # print(dtn(), 'ReturnToNormal')
+            # ReturnToNormal(protocolID, channelID, cfg.reqCANId, cfg.rspCANId)
+
+            # clrb(channelID)
+            # J2534.ptStopMsgFilter(channelID, filterID)
+            # J2534.ptStopPeriodicMsg(channelID, testerPresentMsgID)
+            # J2534.ptDisconnect(channelID)
+
+            # powerCycle(deviceID, powerOffPause, powerOnPause)
+            # protocolID, channelID, filterID, testerPresentMsgID = ISO15765_Connect(deviceID, cfg.reqCANId, cfg.rspCANId, startTesterPresent=True)
+
+            # print(dtn(), 'Start diag')
+            # # IPC: comment it, it's okay to have false here
+            # if not startDiag(protocolID, channelID, cfg.reqCANId, cfg.rspCANId):
+            #     quit(-1)
+
+            # print(dtn(), 'Disable comm')
+            # if not disableComm(protocolID, channelID, cfg.reqCANId, cfg.rspCANId):
+            #     quit(-1)
+
+            print(dtn(), 'Unlock lvl 1 (seed\key)')
+            seed = askSeed(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.requestSeed)
+            tryKey(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, cfg.keys[cfg.sendKey])
+
+        if reconnectCount == 2:
+            print(dtn(), 'Read was unsuccessful. Terminating...')
+            break
+
+        data = data[memoryAddressSize:] # cut address
+
+        # TCM special
+        if data == [0x00, 0x00] and memorySize > len(data):
+            f.write(bytearray([0xDE] * memorySize))
+            print(dtn(), 'Protected region written: 0xDE')
             continue
 
         sHex = ''
-        if data != None:
-            f.write(bytes(data))
+        f.write(bytes(data))
 
-            for d in data:
-                sHex += "{:02X} ".format(d)
+        for d in data:
+            sHex += "{:02X} ".format(d)
 
-            print(sHex)
+        print(sHex)
 
 print(dtn(), 'ReturnToNormal')
 ReturnToNormal(protocolID, channelID, cfg.reqCANId, cfg.rspCANId)
