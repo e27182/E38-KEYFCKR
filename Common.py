@@ -122,7 +122,10 @@ def CAN_Connect(deviceID, reqCANId, rspCANId, startTesterPresent = False):
 
     print(dtn(), '[ CAN Connected ]')
 
-    return protocolID,channelID,filterID,testerPresentMsgID
+    if startTesterPresent:
+        return protocolID,channelID,filterID,testerPresentMsgID
+    else:
+        return protocolID,channelID,filterID
 
 def CAN_SetFilter(protocolId, channelId, reqId, rspId):
     maskMsg = J2534.ptTxMsg(protocolId, 0)
@@ -199,13 +202,13 @@ def sendOnly(ProtocolID, ChannelID, reqID, msgTxData, TxFlags = 0x00000000):
     msgTx.setIDandData(reqID, msgTxData)
 
     J2534.ptWriteMsgs(ChannelID, msgTx, 1, 0)
-    traceMsg(msgTx, intoBus=True)
+    return traceMsg(msgTx, intoBus=True)
 
 def readOnly(ChannelID, ReadTimeout = 500):
     msgRx = J2534.ptRxMsg()
-    J2534.ptReadMsgs(ChannelID, msgRx, 1, ReadTimeout)
+    ret = J2534.ptReadMsgs(ChannelID, msgRx, 1, ReadTimeout)
     traceMsg(msgRx, intoBus=False)
-    return msgRx
+    return msgRx, ret
 
 def traceMsg(msg, intoBus : bool):
     if showErr:
@@ -250,7 +253,7 @@ def standardCommRoutine(protocolID, channelID, reqID, rspID, operationAndParams,
     i = 0
     while i < retries:
         i += 1
-        msgRx = readOnly(channelID)
+        msgRx, _ = readOnly(channelID)
 
         if not isResponse(msgRx, rspID):
             continue
@@ -289,7 +292,7 @@ def CAN_BENCH_ReturnToNormal(protocolID, channelID, reqID, rspID):
     i = 0
     while i < 2:
         i += 1
-        msgRx = readOnly(channelID)
+        msgRx, _ = readOnly(channelID)
         if isResponse(msgRx, rspID) and msgRx[4:5] == [0x01]:
             return True
 
@@ -309,7 +312,7 @@ def ProgrammingMode_enableProgrammingMode(protocolID, channelID, reqID, rspID):
     while i < 10:
         i += 1
 
-        if readOnly(channelID, ReadTimeout=100).DataSize == 0: # wait at least 100ms
+        if readOnly(channelID, ReadTimeout=100)[0].DataSize == 0: # wait at least 100ms
             return True
 
     return False
@@ -342,7 +345,7 @@ def readDID(protocolID, channelID, reqID, rspID, did):
     return standardCommRoutine(protocolID, channelID, reqID, rspID, [0x1a, did], responsePendingTimer=didPause)
 
 def writeDID(protocolID, channelID, reqID, rspID, did, data : list):
-    return standardCommRoutine(protocolID, channelID, reqID, rspID, [0x3b, did], responsePendingTimer=didPause)
+    return standardCommRoutine(protocolID, channelID, reqID, rspID, [0x3b, did] + data, responsePendingTimer=didPause)
 
 MaxMemorySize = {
     2: 4092, # 0xFFC
@@ -368,7 +371,7 @@ def routineControl(protocolID, channelID, reqID, rspID, routineId):
     return standardCommRoutine(protocolID, channelID, reqID, rspID, [0x31, routineId], responsePendingTimer=didPause, successfulResponse=0xFF)
 
 def AEMode(protocolID, channelID, reqID, rspID, cpid, cb):
-    return standardCommRoutine(protocolID, channelID, reqID, rspID, [0xAE, cpid], responsePendingTimer=cpidPause)
+    return standardCommRoutine(protocolID, channelID, reqID, rspID, [0xAE, cpid] + cb, responsePendingTimer=cpidPause)
 
 def StartTesterPresentMsg(protocolID, channelID, timeInterval = 500):
     testerPresentMsg = J2534.ptTxMsg(protocolID, TxFlags.ISO15765_FRAME_PAD | TxFlags.ISO15765_ADDR_TYPE)

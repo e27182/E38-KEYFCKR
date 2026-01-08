@@ -50,30 +50,36 @@ print(dtn(), 'Unlock lvl 1 (seed\key)')
 seed = askSeed(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.requestSeed)
 tryKey(protocolID, channelID, cfg.reqCANId, cfg.rspCANId, cfg.sendKey, cfg.keys[cfg.sendKey])
 
+fileName = "DUMP.bin"
+
 ### EBCM
-# memoryAddressSize = 2 # bytes
-# startAddress = 0x0000
-# endAddress = 0x07FF+1
-# memorySize = 0x01
+memoryAddressSize = 2 # bytes
+startAddress = 0x0000
+endAddress = 0x07FF+1
+memorySize = 0x01
+fileName = "EBCM_DUMP.bin"
 
 ### BCM
 # memoryAddressSize = 4 # bytes
 # startAddress = 0x000000
 # endAddress = 0x100001
 # memorySize = getMemorySizeByMemoryAddressSize(memoryAddressSize)
+# fileName = "BCM_DUMP.bin"
 
 ## TCM
-memoryAddressSize = 4 # bytes
-startAddress = 0x000000
-endAddress = 0x200000
-#endAddress = 0x000500
-memorySize = 0x10 #getMemorySizeByMemoryAddressSize(memoryAddressSize)
+# memoryAddressSize = 4 # bytes
+# startAddress = 0x000000
+# endAddress = 0x200000
+# #endAddress = 0x000500
+# memorySize = 0x10 #getMemorySizeByMemoryAddressSize(memoryAddressSize)
+# fileName = "TCM_DUMP.bin"
 
 ### IPC
 # memoryAddressSize = 4 # bytes
 # startAddress = 0x000000
 # endAddress = 0x200000
 # memorySize = 0x08#getMemorySizeByMemoryAddressSize(memoryAddressSize)
+# fileName = "IPC_DUMP.bin"
 
 # ### ECM
 # memoryAddressSize = 3 # bytes
@@ -81,6 +87,7 @@ memorySize = 0x10 #getMemorySizeByMemoryAddressSize(memoryAddressSize)
 # endAddress = 0x00C45F + 1
 # #endAddress = 0x0FFFFF + 1
 # memorySize = 0xFB # ECM, experimentally identified
+# fileName = "ECM_DUMP.bin"
 
 #memorySize = getMemorySizeByMemoryAddressSize(memoryAddressSize)
 
@@ -92,7 +99,7 @@ memorySize = 0x10 #getMemorySizeByMemoryAddressSize(memoryAddressSize)
 #         break
 ###################################
 
-with open("ECU_DUMP.bin", "wb") as f:
+with open(fileName, "wb") as f:
     for memoryAddress in range(startAddress, endAddress, memorySize):
         if endAddress <= memoryAddress + memorySize:
             memorySize = endAddress - memoryAddress
